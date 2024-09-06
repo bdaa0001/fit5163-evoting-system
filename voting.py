@@ -122,6 +122,53 @@ def deserialize_public_key(serialized_public_key):
         serialized_public_key,
         backend=default_backend()
     )
+#--Add blinding function----------------------------------------------------------------------
+# Blinding a vote or token (done by voter)
+def blind_vote(public_key, vote):
+    blinding_factor = os.urandom(16)
+    blind_vote = public_key.encrypt(
+        vote.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return blind_vote, blinding_factor
+
+# Signing a blinded vote (done by election authority)
+def sign_blinded_vote(private_key, blinded_vote):
+    signature = private_key.sign(
+        blinded_vote,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+# Unblinding the signature
+def unblind_signature(public_key, signature, blinding_factor):
+    # For simplicity, assuming unblinding is handled outside for now (pseudo code)
+    return signature
+
+# Verify the unblinded signature when the vote is cast
+def verify_signature(public_key, signature, original_vote):
+    try:
+        public_key.verify(
+            signature,
+            original_vote.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except Exception:
+        return False
+
 #-------------------------------------------------------------------------
 # Function to count votes
 def count_votes(vote_records):
