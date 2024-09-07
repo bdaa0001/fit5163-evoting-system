@@ -1,5 +1,6 @@
+import sys
 from web3 import Web3
-from solcx import compile_source, install_solc, set_solc_version, get_installed_solc_versions
+from solcx import compile_source, install_solc, set_solc_version
 
 # Install and set Solidity compiler
 install_solc('0.8.0')
@@ -14,24 +15,20 @@ if not w3.is_connected():
     raise Exception("Failed to connect to the Ethereum network")
 print("Connected to Ethereum network")
 
-# Set the default account
+# Set the default account (owner)
 default_account = w3.eth.accounts[0]
 w3.eth.default_account = default_account
 
 # Check the balance of the default account
 balance = w3.eth.get_balance(default_account)
-
-# Manual conversion from wei to ether
 print(f"Default account balance: {w3.from_wei(balance, 'ether')} ETH")
 
-
-# Minimal Solidity source code
+# Solidity source code
 solidity_source_code = '''
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract EVoting {
-
     struct Candidate {
         uint id;
         string name;
@@ -108,27 +105,23 @@ contract EVoting {
     function getTotalCandidates() public view returns (uint) {
         return candidates.length;
     }
+
+    function getCandidate(uint _candidateId) public view returns (string memory name, uint voteCount) {
+        return (candidates[_candidateId].name, candidates[_candidateId].voteCount);
+    }
 }
 '''
+
 try:
     compiled_sol = compile_source(solidity_source_code, output_values=['abi', 'bin'])
     contract_interface = compiled_sol['<stdin>:EVoting']
     print("Contract compiled successfully")
 except Exception as e:
     print(f"Compilation failed: {e}")
-    exit(1)
-
-# Print ABI and Bytecode for verification
-print(f"ABI: {contract_interface['abi']}")
-print(f"Bytecode length: {len(contract_interface['bin'])} characters")
-
-if not contract_interface['bin']:
-    print("Compiled bytecode is empty. Check the contract code.")
-    exit(1)
+    sys.exit(1)
 
 # Deploy the contract
 EVoting = w3.eth.contract(abi=contract_interface['abi'], bytecode=contract_interface['bin'])
-
 try:
     tx_hash = EVoting.constructor("Sample Election").transact({
         'from': default_account,
@@ -136,16 +129,17 @@ try:
         'gasPrice': w3.to_wei('20', 'gwei')
     })
     print(f"Transaction hash: {tx_hash.hex()}")
-    
-    # Wait for the transaction receipt
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     print(f"Contract deployed at address: {tx_receipt.contractAddress}")
 except Exception as e:
     print(f"Deployment failed: {e}")
-    exit(1)
+    sys.exit(1)
 
 # Create a contract instance
 e_voting_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=contract_interface['abi'])
+
+# Store voter accounts with their IDs
+voter_accounts = {}
 
 # Helper Functions
 def add_candidate(name):
@@ -159,7 +153,18 @@ def add_candidate(name):
     except Exception as e:
         print(f"Failed to add candidate '{name}': {e}")
 
-def authorize_voter(voter_address):
+def create_voter_account(voter_id):
+    """Assign an existing Ganache account to the voter ID."""
+    voter_address = w3.eth.accounts[int(voter_id)]  # Use predefined Ganache accounts
+    voter_accounts[voter_id] = voter_address
+    print(f"Voter '{voter_id}' assigned to existing address: {voter_address}")
+    return voter_address
+
+def authorize_voter(voter_id):
+    voter_address = voter_accounts.get(voter_id)
+    if not voter_address:
+        print(f"Voter ID {voter_id} not found.")
+        return
     try:
         tx_hash = e_voting_contract.functions.authorizeVoter(voter_address).transact({
             'from': default_account,
@@ -170,22 +175,24 @@ def authorize_voter(voter_address):
     except Exception as e:
         print(f"Failed to authorize voter {voter_address}: {e}")
 
-def cast_vote(voter_address, candidate_id):
+def cast_vote(voter_id, candidate_number):
+    voter_address = voter_accounts.get(voter_id)
+    if not voter_address:
+        print(f"Voter ID {voter_id} not found.")
+        return
     try:
-        # Set the default account to the voter
         w3.eth.default_account = voter_address
-        tx_hash = e_voting_contract.functions.vote(candidate_id).transact({
+        tx_hash = e_voting_contract.functions.vote(candidate_number).transact({
             'from': voter_address,
             'gas': 100000
         })
         w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Vote cast by {voter_address} for candidate ID {candidate_id}.")
+        print(f"Vote cast by {voter_address} for candidate number {candidate_number}.")
     except Exception as e:
         print(f"Failed to cast vote by {voter_address}: {e}")
 
 def end_election():
     try:
-        # Use the default account (contract owner) to end the election
         w3.eth.default_account = default_account
         winner_name, winner_vote_count = e_voting_contract.functions.endElection().call({
             'from': default_account
@@ -194,38 +201,77 @@ def end_election():
     except Exception as e:
         print(f"Failed to end election: {e}")
 
-def get_total_candidates():
-    try:
-        return e_voting_contract.functions.getTotalCandidates().call()
-    except Exception as e:
-        print(f"Failed to get total candidates: {e}")
-        return 0
-
 def list_candidates():
     try:
-        total_candidates = get_total_candidates()
+        total_candidates = e_voting_contract.functions.getTotalCandidates().call()
         print("List of candidates:")
+        candidates = []
         for i in range(total_candidates):
-            candidate = e_voting_contract.functions.candidates(i).call()
-            print(f"ID: {candidate[0]}, Name: {candidate[1]}, Vote Count: {candidate[2]}")
+            name, vote_count = e_voting_contract.functions.getCandidate(i).call()
+            candidates.append((i, name, vote_count))
+            print(f"{i + 1}. {name} - Votes: {vote_count}")
+        return candidates
     except Exception as e:
         print(f"Failed to list candidates: {e}")
 
-# Example Usage
-# Adding candidates
-add_candidate("Alice")
-add_candidate("Bob")
+def register_candidates():
+    print("Register candidates")
+    while True:
+        candidate_name = input("Enter candidate name (or type 'done' to finish): ")
+        if candidate_name.lower() == 'done':
+            break
+        add_candidate(candidate_name)
 
-# Authorizing voters
-authorize_voter(w3.eth.accounts[1])
-authorize_voter(w3.eth.accounts[2])
+def register_voters():
+    print("Register voters")
+    while True:
+        voter_id = input("Enter voter ID (or type 'done' to finish): ")
+        if voter_id.lower() == 'done':
+            break
+        voter_address = create_voter_account(voter_id)
+        authorize_voter(voter_id)
 
-# Casting votes
-cast_vote(w3.eth.accounts[1], 1)  # Voter 1 votes for Alice
-cast_vote(w3.eth.accounts[2], 1)  # Voter 2 votes for Bob
+def conduct_voting():
+    print("Voting begins")
+    candidates = list_candidates()  # Display all candidates
+    while True:
+        voter_id = input("Enter voter ID (or type 'done' to finish): ")
+        if voter_id.lower() == 'done':
+            break
+        try:
+            candidate_number = int(input("Enter the number of the candidate you want to vote for: "))
+            if candidate_number < 1 or candidate_number > len(candidates):
+                print("Invalid candidate number.")
+                continue
+            cast_vote(voter_id, candidate_number - 1)  # Candidates are zero-indexed in the contract
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
 
-# List candidates and votes
-list_candidates()
+def main():
+    print("Election System CLI")
+    while True:
+        print("\nOptions:")
+        print("1. Register Candidates")
+        print("2. Register Voters")
+        print("3. Start Voting")
+        print("4. End Election and Show Results")
+        print("5. Exit")
+        option = input("Select an option: ")
 
-# End election and declare the winner
-end_election()
+        if option == "1":
+            register_candidates()
+        elif option == "2":
+            register_voters()
+        elif option == "3":
+            conduct_voting()
+        elif option == "4":
+            list_candidates()
+            end_election()
+        elif option == "5":
+            print("Exiting election system.")
+            break
+        else:
+            print("Invalid option, please try again.")
+
+if __name__ == "__main__":
+    main()
