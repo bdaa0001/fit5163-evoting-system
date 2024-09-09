@@ -83,7 +83,7 @@ def main():
                 voter_id = record['voter_id']
                 private_key = record['stored_private_key']
                 encrypted_vote = record['encrypted_vote']
-                decrypted_vote = decrypt_vote(private_key, encrypted_vote)
+                decrypted_vote = voter_authentication.decrypt_vote(private_key, encrypted_vote)
                 record['vote_candidate'] = decrypted_vote
 
             vote_count = voter_authentication.count_votes(vote_records)
