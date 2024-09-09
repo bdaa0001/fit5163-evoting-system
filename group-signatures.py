@@ -13,6 +13,7 @@ class VotingSystem:
     class Admin:
         def __init__(self, name):
             # Generate RSA key pair (public and private keys) for this admin
+            # This should be implemented with something else
             (self.public_key, self.private_key) = rsa.newkeys(512)
             self.name = name  # Name of the admin
 
