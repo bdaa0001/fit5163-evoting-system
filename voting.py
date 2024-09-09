@@ -1,7 +1,23 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 import json
+import hashlib
+import os
+
+#----------------------------Voter Registration-with Storing Key Pair----------------------------------------
+
+# Function to generate a random voter ID and hash it
+def generate_voter_id():
+    random_id = os.urandom(4).hex()  # Generates a random ID
+    hashed_id = hashlib.sha256(random_id.encode()).hexdigest()  # Hashes the ID
+    return hashed_id, random_id  # Return both hashed ID for storage and plain ID to show to voter
+
+# Function to check if an email is already registered
+def is_email_registered(voters, email):
+    return any(voter['email'] == email for voter in voters.values())
+
 
 # Function to generate RSA key pair
 def generate_rsa_keys():
@@ -12,6 +28,61 @@ def generate_rsa_keys():
     )
     public_key = private_key.public_key()
     return private_key, public_key
+
+
+# Function to register a voter
+def register_voter(voters):
+    name = input("Enter your name: ")
+    email = input("Enter your email: ")
+
+    if is_email_registered(voters, email):
+        print("Email already registered. One email can be used for one registration.")
+        return
+
+    hashed_voter_id, plain_voter_id = generate_voter_id()
+    private_key, public_key = generate_rsa_keys()
+    # Serialize the keys before storing
+    serialized_private_key = serialize_private_key(private_key)
+    serialized_public_key = serialize_public_key(public_key)
+
+    voters[hashed_voter_id] = {
+        'name': name,
+        'email': email,
+        'id': plain_voter_id,
+        'private_key': serialized_private_key,
+        'public_key': serialized_public_key
+    }
+    print(f"You registered successfully with Voting_ID: {plain_voter_id}")
+
+# Function to serialize private key
+def serialize_private_key(private_key):
+    return private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+
+# Function to serialize public key
+def serialize_public_key(public_key):
+    return public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+
+#----------------------------Vote Encryption/ Decryption---------------------------------------------------
+
+# Function to sign a vote using private key
+def sign_vote(private_key, vote):
+    signature = private_key.sign(
+        vote.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
 
 # Function to encrypt a vote using public key
 def encrypt_vote(public_key, vote):
@@ -37,6 +108,68 @@ def decrypt_vote(private_key, encrypted_vote):
     )
     return decrypted_vote.decode()
 
+# Function to deserialize a private key
+def deserialize_private_key(serialized_private_key):
+    return serialization.load_pem_private_key(
+        serialized_private_key,
+        password=None,
+        backend=default_backend()
+    )
+
+# Function to deserialize a public key
+def deserialize_public_key(serialized_public_key):
+    return serialization.load_pem_public_key(
+        serialized_public_key,
+        backend=default_backend()
+    )
+#--Add blinding function----------------------------------------------------------------------
+# Blinding a vote or token (done by voter)
+def blind_vote(public_key, vote):
+    blinding_factor = os.urandom(16)
+    blind_vote = public_key.encrypt(
+        vote.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return blind_vote, blinding_factor
+
+# Signing a blinded vote (done by election authority)
+def sign_blinded_vote(private_key, blinded_vote):
+    signature = private_key.sign(
+        blinded_vote,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+# Unblinding the signature
+def unblind_signature(public_key, signature, blinding_factor):
+    # For simplicity, assuming unblinding is handled outside for now (pseudo code)
+    return signature
+
+# Verify the unblinded signature when the vote is cast
+def verify_signature(public_key, signature, original_vote):
+    try:
+        public_key.verify(
+            signature,
+            original_vote.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except Exception:
+        return False
+
+#-------------------------------------------------------------------------
 # Function to count votes
 def count_votes(vote_records):
     vote_count = {}
@@ -69,33 +202,40 @@ def main():
         choice = input("Enter your choice: ")
 
         if choice == '1':
-            voter_id = input("Enter new voter ID: ")
-            if voter_id in voters:
-                print("Voter already registered.")
-            else:
-                private_key, public_key = generate_rsa_keys()
-                voters[voter_id] = {'private_key': private_key, 'public_key': public_key}
-                print(f"Voter {voter_id} registered successfully with RSA keys.")
+            register_voter(voters)
 
         elif choice == '2':
             voter_id = input("Enter your voter ID: ")
-            if voter_id not in voters:
+            hashed_voter_id = hashlib.sha256(voter_id.encode()).hexdigest()
+            if hashed_voter_id not in voters:
                 print("Voter not registered. Please register first.")
             else:
                 candidate = input("Enter your vote (choose a candidate's name): ")
                 if candidate not in candidates:
                     print("Invalid vote. Please choose a valid candidate.")
                 else:
-                    public_key = voters[voter_id]['public_key']
+                    voter = voters[hashed_voter_id]
+                    # Deserialize the private key for signing
+                    private_key = deserialize_private_key(voter['private_key'])
+                    # Deserialize the public key for encryption
+                    public_key = deserialize_public_key(voter['public_key'])
+                    # Sign and encrypt the vote with private key
+                    signature = sign_vote(private_key, candidate)
+                    # Encrypt the vote with public key
                     encrypted_vote = encrypt_vote(public_key, candidate)
-                    vote_records.append({'voter_id': voter_id, 'encrypted_vote': encrypted_vote})
+                    
+                    vote_records.append({
+                        'voter_id': hashed_voter_id,
+                        'encrypted_vote': encrypted_vote,
+                        'signature': signature
+                    })
                     print(f"Vote cast for {candidate} successfully!")
 
         elif choice == '3':
             print("\nDecrypting and counting votes...")
             for record in vote_records:
                 voter_id = record['voter_id']
-                private_key = voters[voter_id]['private_key']
+                private_key = deserialize_private_key(voter['private_key'])
                 encrypted_vote = record['encrypted_vote']
                 decrypted_vote = decrypt_vote(private_key, encrypted_vote)
                 record['candidate'] = decrypted_vote
