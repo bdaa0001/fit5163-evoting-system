@@ -3,8 +3,8 @@ from web3 import Web3
 from solcx import compile_source, install_solc, set_solc_version
 
 # Install and set Solidity compiler
-install_solc('0.8.0')
-set_solc_version('0.8.0')
+install_solc('0.8.13')
+set_solc_version('0.8.13')
 
 # Connect to Ganache
 ganache_url = "http://127.0.0.1:7545"
@@ -26,7 +26,7 @@ print(f"Default account balance: {w3.from_wei(balance, 'ether')} ETH")
 # Solidity source code
 solidity_source_code = '''
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 contract EVoting {
     struct Candidate {

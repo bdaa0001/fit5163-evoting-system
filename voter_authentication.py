@@ -44,7 +44,7 @@ def register_voter(voters):
     hashed_voter_id, plain_voter_id = generate_voter_id()
     
     # Blockchain: Create voter account and authorize on the blockchain index 0-9
-    ganache_index= random.randint(0, 9)
+    ganache_index= random.randint(1, 9)
     voter_address=create_voter_account(ganache_index)
     print(f"Voter '{plain_voter_id}' assigned to existing address: {voter_address}")
 
