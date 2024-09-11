@@ -19,11 +19,11 @@ def main():
     print("Candidates:")
     for candidate_number, candidate_name in candidates.items():
         blockchain_ganache.add_candidate(candidate_name)
-        print(f"{candidate_number}: {candidate_name}")
+        print(f"{candidate_number}: {candidate_name}") 
 
     # Voter data storage
     voters = {}
-    vote_records = []
+    vote_records = [] # Store the vailied vote records
 
     while True:
         print("\n--- Voting Menu ---")
@@ -40,11 +40,16 @@ def main():
         elif choice == '2':
             # Cast a vote
             candidate_number = int(input("Enter the candidate number you want to vote for: "))
-            if candidate_number in candidates:
-                candidate_name = candidates[candidate_number]
-                blinding_signature.cast_a_vote(voters, vote_records, candidate_number, candidate_name)
-            else:
-                print("Invalid candidate number. Please choose a valid candidate.")
+            try:
+                if candidate_number in candidates:
+                    blinding_signature.cast_a_vote(voters, candidate_number, vote_records)
+                else:
+                    print("Invalid candidate number. Please enter a valid candidate number.")
+                    continue
+            except ValueError:
+                print("Invalid candidate number. Please enter a valid candidate number.")
+                continue
+
 
 
         elif choice == '3':

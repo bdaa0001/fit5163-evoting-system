@@ -150,7 +150,7 @@ def add_candidate(name):
             'gas': 100000
         })
         w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Candidate '{name}' added successfully.")
+        # print(f"Candidate '{name}' added successfully.")
     except Exception as e:
         print(f"Failed to add candidate '{name}': {e}")
 
@@ -181,8 +181,10 @@ def cast_vote_transact(voter_address, candidate_number):
         })
         w3.eth.wait_for_transaction_receipt(tx_hash)
         print(f"Vote cast by {voter_address} for candidate number {candidate_number}.")
+        return True
     except Exception as e:
         print(f"Failed to cast vote by {voter_address}: {e}")
+        return False
 
 def end_election():
     try:
