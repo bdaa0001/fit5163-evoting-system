@@ -100,11 +100,15 @@ def decrypt_vote(private_key, encrypted_vote):
         )
     )
     return decrypted_vote.decode()
+#---------------------------create election authority-------------------------------------------------------------------
+def create_election_authority():
+    authority_private_key, authority_public_key = generate_rsa_keys()
+    return authority_private_key, authority_public_key
 
 #---------------------------Vote Casting with blind signature-------------------------------------------------------------------
-# casting a vote
-def cast_a_vote(voters, vote_records, candidate_number, candidate_name):
-    vote_record = []
+# casting a vote (voter submitting the blind vote and authority signing it)
+def cast_a_vote(voters, candidate_number,vote_records):
+    vote_record = {}
     voter_id = input("Enter your voter ID: ")
     hashed_voter_id = hashlib.sha256(voter_id.encode()).hexdigest()
     if hashed_voter_id not in voters:
@@ -114,30 +118,26 @@ def cast_a_vote(voters, vote_records, candidate_number, candidate_name):
         voter_address= voter['blockchain_address']
         # Cast a vote from voter for a candidate and create a block in Ganache to be added in e-voting contract
         cast_vote_transact(voter_address, candidate_number - 1)  # Candidates are zero-indexed in the contract
-
-        authority_private_key=voter['private_key']
-        authority_public_key = voter['public_key']
-        # blind the vote
-        # Blind the vote using authority's public key
+        # Generate RSA keys for the election authority, and get voter's private and public keys
+        authority_private_key, authority_public_key = create_election_authority()
+        # voter_private_key=voter['private_key']
+        # voter_public_key = voter['public_key']
+        #---------------------------------------------------- blind the vote
+        # voter Blind the vote using authority's public key
         blinded_vote, blinding_factor = blind_vote(authority_public_key, candidate_number)
         # Send the blinded vote to the authority for signing
         signed_blinded_vote = sign_blinded_vote(authority_private_key, blinded_vote)
-        # Unblind the signed vote using the blinding factor
-        unblinded_signature = unblind_signature(signed_blinded_vote, blinding_factor, authority_public_key)
+        # voter Unblind the signed vote using the blinding factor
+        voter_unblinded_signature = unblind_signature(signed_blinded_vote, blinding_factor, authority_public_key)
 
-        # Add the unblinded signature and encrypted vote to the vote record list
-        vote_record.append({
-            'voter_id': hashed_voter_id,
+        # Add the unblinded signature and encrypted vote to the voter record dictionary and store it
+        vote_record[voter_id]={
             'candidate_number': candidate_number,
-            'unblinded_signature': unblinded_signature,
-        })
-        # Verify the unblinded vote
-        if verify_signature(authority_public_key, unblinded_signature,candidate_number):
-            print("Vote verified successfully and remains anonymous!")
-        else:
-            print("Vote verification failed.")
-        vote_records.append(vote_record)
+            'unblinded_signature': voter_unblinded_signature,
+        }
         print(f"Your vote cast for candidate {candidate_number} successfully!")
+    verify_signature(authority_public_key, voter_unblinded_signature, candidate_number,vote_records)
+
 
 
 #-- blinding signature functions for realise each vote is anonymous--------------------------------------------------------------------
@@ -174,23 +174,29 @@ def unblind_signature(signature, blinding_factor, public_key):
     return unblinded_signature
 
 # Function to verify the unblinded signature
-def verify_signature(public_key, unblinded_signature,candidate_number):
-    n = public_key.public_numbers().n
-    e = public_key.public_numbers().e
+def verify_signature(authority_public_key, unblinded_signature, candidate_number,vote_records):
+    n = authority_public_key.public_numbers().n
+    e = authority_public_key.public_numbers().e
     # Verify the signature: check if (σ^e) % n == v
     verified = pow(unblinded_signature, e, n) == candidate_number
-    return verified
+    # Verify the unblinded vote
+    if verified:
+        print("Vote verified successfully and remains anonymous!")
+        vote_records.append(candidate_number)
+        print(vote_records)
+    else:
+        print("Vote verification failed.")
+    
+    
 
 #---------------------------Vote Counting-------------------------------------------------------------------
 def count_votes(vote_records, candidates):
     # Initialize the vote count for each candidate to 0
     vote_count = {name: 0 for name in candidates.values()}
     # Iterate over vote records and count votes
-    for record in vote_records:
-        candidate_number = record[0]['candidate_number'] # Assuming this holds the candidate number
-        
+    for count_candidate_number in vote_records:     
         # Retrieve candidate name using the candidate number
-        candidate_name = candidates.get(candidate_number)
+        candidate_name = candidates.get(count_candidate_number)
         
         if candidate_name:
             vote_count[candidate_name] += 1
@@ -221,7 +227,7 @@ def main():
 
     # Voter data storage
     voters = {}
-    vote_records = []
+    vote_records = [] # Store the valied vote records
 
     while True:
         print("\n--- Voting Menu ---")
@@ -239,8 +245,7 @@ def main():
             # Cast a vote
             candidate_number = int(input("Enter the candidate number you want to vote for: "))
             if candidate_number in candidates:
-                candidate_name = candidates[candidate_number]
-                cast_a_vote(voters, vote_records, candidate_number, candidate_name)
+                cast_a_vote(voters, candidate_number, vote_records)
             else:
                 print("Invalid candidate number. Please choose a valid candidate.")
 
