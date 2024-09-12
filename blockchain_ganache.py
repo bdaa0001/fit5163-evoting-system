@@ -240,32 +240,3 @@ def conduct_voting():
             cast_vote_transact(voter_id, candidate_number - 1)  # Candidates are zero-indexed in the contract
         except ValueError:
             print("Invalid input. Please enter a valid number.")
-
-def main():
-    print("Election System CLI")
-    while True:
-        print("\nOptions:")
-        print("1. Register Candidates")
-        print("2. Register Voters")
-        print("3. Start Voting")
-        print("4. End Election and Show Results")
-        print("5. Exit")
-        option = input("Select an option: ")
-
-        if option == "1":
-            register_candidates()
-        elif option == "2":
-            register_voters()
-        elif option == "3":
-            conduct_voting()
-        elif option == "4":
-            list_candidates()
-            end_election()
-        elif option == "5":
-            print("Exiting election system.")
-            break
-        else:
-            print("Invalid option, please try again.")
-
-if __name__ == "__main__":
-    main()

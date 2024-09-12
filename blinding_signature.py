@@ -39,7 +39,7 @@ def cast_a_vote(voters, vote_records, candidate_number, candidate_name):
         else:
             print("Vote verification failed.")
         vote_records.append(vote_record)
-        print(f"Your vote cast for candidate {candidate_number} successfully!")
+        print(f"Your vote cast for candidate {candidate_number}: {candidate_name} successfully!")
 
 
 #-- blinding signature functions for realise each vote is anonymous--------------------------------------------------------------------

@@ -5,7 +5,9 @@ from sympy import mod_inverse
 import hashlib
 import os
 import random
+import re
 from blockchain_ganache import add_candidate,create_voter_account, create_voter_account, cast_vote_transact
+
 
 #----------------------------Voter Registration-with Storing Key Pair----------------------------------------
 
@@ -18,6 +20,12 @@ def generate_voter_id():
 # Function to check if an email is already registered
 def is_email_registered(voters, email):
     return any(voter['email'] == email for voter in voters.values())
+
+def is_valid_email(email):
+    
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    return re.match(email_regex, email) is not None
+
 
 
 # Function to generate RSA key pair
@@ -34,7 +42,13 @@ def generate_rsa_keys():
 # Function to register a voter with blockchain and store their keys and info
 def register_voter(voters):
     name = input("Enter your name: ")
-    email = input("Enter your email: ")
+
+    while True:
+        email = input("Enter your email address: ")
+        if is_valid_email(email):
+            break
+        else:
+            print("Invalid email format. Please enter a valid email address.")
 
     if is_email_registered(voters, email):
         print("Email already registered. One email can be used for one registration.")
@@ -43,8 +57,10 @@ def register_voter(voters):
     hashed_voter_id, plain_voter_id = generate_voter_id()
     
     # Blockchain: Create voter account and authorize on the blockchain index 0-9
+    print(f"* Clarification: This is only displayed for DEMO purposes *")
     ganache_index= random.randint(1, 9)
     voter_address=create_voter_account(ganache_index)
+    print(f"* Demo Blockchain: Block is mined for a voter and stored on this address *")
     print(f"Voter '{plain_voter_id}' assigned to existing address: {voter_address}")
 
     # Generate RSA keys
@@ -60,7 +76,9 @@ def register_voter(voters):
         'ganache_index': ganache_index,
         'blockchain_address': voter_address  # Store their blockchain address
     }
+    print(f"IMPORTANT! Please keep this ID safe place, You will need this ID to cast a vote!")
     print(f"Voter registered successfully with ID: {plain_voter_id}")
+    
 
 
 #----------------------------Vote sign - Encryption/ Decryption---------------------------------------------------
@@ -197,67 +215,3 @@ def count_votes(vote_records, candidates):
 
     return vote_count
 
-
-
-
-
-# Main function to run the voting application
-def main():
-    # Define candidates
-    candidates = {
-        1: "Alice",
-        2: "Bob",
-        3: "Charlie",
-        4: "David",
-        5: "Eve"
-    }
-    
-
-    print("Welcome to the RSA Secure Voting System!")
-    print("Candidates:")
-    for candidate_number, candidate_name in candidates.items():
-        add_candidate(candidate_name)
-        print(f"{candidate_number}: {candidate_name}")
-
-    # Voter data storage
-    voters = {}
-    vote_records = []
-
-    while True:
-        print("\n--- Voting Menu ---")
-        print("1. Register voter")
-        print("2. Cast a vote")
-        print("3. Show total votes")
-        print("4. Exit")
-
-        choice = input("Enter your choice: ")
-
-        if choice == '1':
-            register_voter(voters)
-
-        elif choice == '2':
-            # Cast a vote
-            candidate_number = int(input("Enter the candidate number you want to vote for: "))
-            if candidate_number in candidates:
-                candidate_name = candidates[candidate_number]
-                cast_a_vote(voters, vote_records, candidate_number, candidate_name)
-            else:
-                print("Invalid candidate number. Please choose a valid candidate.")
-
-
-        elif choice == '3':
-            # Show total votes
-            print("\n--- Tallying the votes ---")
-            vote_count = count_votes(vote_records, candidates)
-            for candidate, count in vote_count.items():
-                print(f"{candidate}: {count} votes")
-
-        elif choice == '4':
-            print("Exiting the voting system. Goodbye!")
-            break
-
-        else:
-            print("Invalid choice. Please enter a number between 1 and 4.")
-
-if __name__ == "__main__":
-    main()
