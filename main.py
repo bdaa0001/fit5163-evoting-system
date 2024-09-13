@@ -1,6 +1,6 @@
-import blockchain_ganache
-import voter_authentication
-import blinding_signature
+import core.blockchain_ganache as blockchain_ganache
+import auth.voter_authentication as voter_authentication
+import core.blinding_signature as blinding_signature
 import re
 
 # Function to add candidates to the blockchain

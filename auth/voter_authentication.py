@@ -6,7 +6,7 @@ import hashlib
 import os
 import random
 import re
-from blockchain_ganache import add_candidate,create_voter_account, create_voter_account, cast_vote_transact
+from core.blockchain_ganache import add_candidate,create_voter_account, create_voter_account, cast_vote_transact
 
 
 #----------------------------Voter Registration-with Storing Key Pair----------------------------------------

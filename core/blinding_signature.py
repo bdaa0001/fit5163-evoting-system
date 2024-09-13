@@ -1,7 +1,7 @@
 from sympy import mod_inverse
 import hashlib
 import random
-from blockchain_ganache import cast_vote_transact
+from core.blockchain_ganache import cast_vote_transact
 
 #---------------------------Vote Casting with Blind Signature----------------------------------------------
 def cast_a_vote(voters, vote_records, candidate_number, candidate_name):
