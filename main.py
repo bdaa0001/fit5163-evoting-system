@@ -115,9 +115,8 @@ def main():
                 if candidate_number in candidates:
                     confirmation = input(f"Are you sure you want to vote for {candidates[candidate_number]}? (yes/no): ").lower()
                     if confirmation == "yes":
-                        candidate_name = candidates.get(candidate_number, "Invalid candidate number")
                         # Cast a valid vote using blinding_signature module
-                        blinding_signature.cast_a_vote(voters, vote_records, candidate_number, candidate_name)
+                        blinding_signature.cast_a_vote(voters, candidate_number, vote_records)
                         voted_voters.add(voter_id)  # Mark voter as having voted
                     else:
                         print("Vote cancelled.")
