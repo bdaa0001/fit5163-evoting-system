@@ -147,8 +147,8 @@ def main():
                 # Collect and validate candidate selection
                 candidate_number = int(input("\nEnter the candidate number you want to vote for: "))
                 if candidate_number in candidates:
-                    confirmation = input(f"\nAre you sure you want to vote for {candidates[candidate_number]}? (yes/no): ").lower()
-                    if confirmation == "yes":
+                    confirmation = input(f"\nAre you sure you want to vote for {candidates[candidate_number]}? (yes/[no]): ").lower()
+                    if confirmation in ['yes', 'y']:
                         # Cast a valid vote using the blinding_signature module
                         blinding_signature.cast_a_vote(voter_id, voters, vote_records, candidate_number)
                         voted_voters.add(voter_id)  # Mark voter as having voted

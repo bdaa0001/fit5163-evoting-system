@@ -1,9 +1,10 @@
 import sys
 import os
 from web3 import Web3
-from solcx import compile_source, install_solc, set_solc_version
 # Adding root directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import solcx
+from solcx import install_solc, set_solc_version, compile_source
 import config
 
 #---------------------------Solidity Compiler Setup---------------------------------------------------------
