@@ -174,6 +174,34 @@ def main():
 
         elif choice == '4':
             # Exit the voting system
+            try:
+                print("\n--- Final votes ---\n")
+                vote_count = blinding_signature.count_votes(vote_records, candidates)
+
+                # Print the vote count for each candidate
+                for candidate, count in vote_count.items():
+                    print(f"🗳️  {candidate}: {count} votes")
+
+                # Check if all votes are zero
+                if all(count == 0 for count in vote_count.values()):
+                    print("\n🚫 No winner: All candidates received 0 votes.")
+                else:
+                    # Find the maximum vote count
+                    max_votes = max(vote_count.values())
+                    
+                    # Find all candidates with the maximum votes
+                    winners = [candidate for candidate, count in vote_count.items() if count == max_votes]
+
+                    if len(winners) == 1:
+                        # If there is only one winner
+                        print(f"\n🏆 The winner is: {winners[0]} with {max_votes} votes!")
+                    else:
+                        # If there are multiple winners
+                        print(f"\n🤝 It's a tie! The winners are: {', '.join(winners)} with {max_votes} votes each!")
+                
+            except Exception as e:
+                print(f"\n❌ Error tallying votes: {e}\n")
+
             print("\n👋 Exiting the voting system. Goodbye!\n")
             break
 

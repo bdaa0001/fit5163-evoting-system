@@ -40,12 +40,45 @@ def generate_rsa_keys():
     return private_key, public_key
 
 
-# Function to register a voter with blockchain and store their keys and info
+import re
+
+def is_valid_name(name):
+    """
+    Checks if the provided name follows classic naming conventions:
+    - No numbers allowed in the name
+    - Name cannot be empty
+    - Name cannot contain special characters (only letters, spaces, or hyphens are allowed)
+    - Each word in the name should start with a capital letter
+    - Name must be between 2 and 50 characters long
+    """
+    # Check if name is empty or only contains spaces
+    if not name or not name.strip():
+        return False
+
+    # Check if name contains numbers or special characters (allow only letters, spaces, and hyphens)
+    if not re.match("^[A-Za-z\s-]+$", name):
+        return False
+
+    # Check if each word in the name starts with a capital letter
+    if not all(word[0].isupper() for word in name.split() if word):
+        return False
+
+    # Check if the length of the name is reasonable
+    if len(name) < 2 or len(name) > 50:
+        return False
+
+    return True
+
 def register_voter(voters):
     """
     Registers a voter by generating an ID, creating a blockchain address, and storing their details.
     """
-    name = input("Enter your name: ")
+    while True:
+        name = input("Enter your name: ")
+        if is_valid_name(name):
+            break
+        else:
+            print("Invalid name format. Name must start with a capital letter, contain no numbers or special characters, and be between 2 and 50 characters long.")
 
     while True:
         email = input("Enter your email address: ")
@@ -86,6 +119,7 @@ def register_voter(voters):
     # Print plain voter ID for the voter to remember
     print(f"You have registered successfully with ID: {plain_voter_id}")
     print(f"IMPORTANT! Please keep this ID in a safe place, You will need this ID to cast a vote!")
+
 
     # After registration process, print the voters dictionary for debugging
 #----------------------------Vote sign - Encryption/ Decryption---------------------------------------------------
