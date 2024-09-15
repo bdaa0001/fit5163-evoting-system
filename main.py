@@ -22,7 +22,8 @@ def select_log_type():
     - For front-end (user) output, the message is simplified for user understanding without technical jargon.
     """
     while True:
-        log_choice = input("Do you want to print back-end logs (Yes/Y / [No])? : ").lower()
+        log_choice = input("Do you want to print back-end logs (Yes / [No])? : ").lower()
+        print()
         if log_choice in ['yes', 'y']:
             config.PRINT_BACKEND_LOGS = True
             print("Back-end logs will be printed.")
@@ -57,13 +58,20 @@ def display_candidates(candidates):
     for candidate_number, candidate_name in candidates.items():
         print(f"{candidate_number}: {candidate_name}")
 
-# Wlcome message
+# Wecome message
 def welcome_message():
-    print("Welcome to the E-Voting System!\n")
-    print("Your vote matters, and we’re here to make sure it counts.")
-    print("Rest assured, your vote will remain completely anonymous and secure.")
-    print("Our system is designed to protect your privacy while ensuring fairness.")
-    print("Please follow the instructions to cast your vote confidently.\n")
+    print("="*50)
+    print("        Welcome to the E-Voting System!")
+    print("="*50)
+    print("\nYour vote is anonymous, secure, and fully protected.")
+    print("We use advanced technologies such as:")
+    print("  - Blinding Signatures")
+    print("  - Blockchain")
+    print("  - Smart Contracts")
+    print("\nThese ensure confidentiality, authentication, and integrity.")
+    print("Rest assured, your vote is handled with the highest standards of privacy and security.")
+    print("\nPlease follow the instructions to cast your vote confidently.")
+    print("="*50)
 
 # Main CLI function
 def main():
@@ -76,6 +84,7 @@ def main():
     blockchain_ganache.connect_to_blockchain()
     
     welcome_message()
+    
     # Define candidates with their assigned numbers
     candidates = {
         1: "Alice",
@@ -84,7 +93,6 @@ def main():
         4: "David",
         5: "Eve"
     }
-
     
     # Add candidates to the blockchain
     add_candidates(candidates)
@@ -96,11 +104,14 @@ def main():
 
     while True:
         # Display menu options for the voting system
-        print("\n--- Voting Menu ---")
+        print("\n" + "="*30)
+        print("          Voting Menu")
+        print("="*30)
         print("1. Register voter")
         print("2. Cast a vote")
         print("3. Show total votes")
         print("4. Exit")
+        print("="*30)
 
         # User input to select an option from the menu
         choice = input("Enter your choice (1-4): ")
@@ -109,64 +120,67 @@ def main():
             # Register a voter
             try:
                 voter_id = voter_authentication.register_voter(voters)
+                print(f"\n✅ You have been successfully registered!\n")
             except Exception as e:
-                print(f"Error registering voter: {e}")
+                print(f"\n❌ Error registering voter: {e}\n")
 
         elif choice == '2':
             # Cast a vote
             try:
-                voter_id = input("Enter your voter ID: ")
+                voter_id = input("\nEnter your voter ID: ")
                     
                 hashed_voter_id = hashlib.sha256(voter_id.encode()).hexdigest()
                 
-                 # Check if the voter has registered
+                # Check if the voter has registered
                 if voter_id not in voters and hashed_voter_id not in voters:
-                    print("Voter ID not registered or ineligible. Please register first.")
+                    print("\n❌ Your Voter ID has not been registered or is ineligible. Please register first.\n")
                     continue
                 
                 # Check if the voter has already voted
                 if voter_id in voted_voters:
-                    print("You have already cast your vote. You cannot vote again.")
+                    print("\n⚠️ You have already cast your vote. You cannot vote again.\n")
                     continue
 
                 # Display candidates for voting
                 display_candidates(candidates)
 
                 # Collect and validate candidate selection
-                candidate_number = int(input("Enter the candidate number you want to vote for: "))
+                candidate_number = int(input("\nEnter the candidate number you want to vote for: "))
                 if candidate_number in candidates:
-                    confirmation = input(f"Are you sure you want to vote for {candidates[candidate_number]}? (yes/no): ").lower()
+                    confirmation = input(f"\nAre you sure you want to vote for {candidates[candidate_number]}? (yes/no): ").lower()
                     if confirmation == "yes":
                         # Cast a valid vote using the blinding_signature module
                         blinding_signature.cast_a_vote(voter_id, voters, vote_records, candidate_number)
                         voted_voters.add(voter_id)  # Mark voter as having voted
+                        print(f"\n✅ Your vote for {candidates[candidate_number]} has been successfully cast!\n")
                     else:
-                        print("Vote cancelled.")
+                        print("\n⚠️ Vote cancelled.\n")
                 else:
-                    print("Invalid candidate number. Please enter a valid candidate number.")
+                    print("\n❌ Invalid candidate number. Please enter a valid candidate number.\n")
             except ValueError:
-                print("Invalid input. Please enter a valid candidate number.")
+                print("\n❌ Invalid input. Please enter a valid candidate number.\n")
             except Exception as e:
-                print(f"Error casting vote: {e}")
+                print(f"\n❌ Error casting vote: {e}\n")
 
         elif choice == '3':
             # Show total votes for each candidate
             try:
-                print("\n--- Tallying the votes ---")
+                print("\n--- Tallying the votes ---\n")
                 vote_count = blinding_signature.count_votes(vote_records, candidates)
                 for candidate, count in vote_count.items():
-                    print(f"{candidate}: {count} votes")
+                    print(f"🗳️  {candidate}: {count} votes")
             except Exception as e:
-                print(f"Error tallying votes: {e}")
+                print(f"\n❌ Error tallying votes: {e}\n")
 
         elif choice == '4':
             # Exit the voting system
-            print("Exiting the voting system. Goodbye!")
+            print("\n👋 Exiting the voting system. Goodbye!\n")
             break
 
         else:
             # Invalid menu selection
-            print("Invalid choice. Please enter a number between 1 and 4.")
+            print("\n❌ Invalid choice. Please enter a number between 1 and 4.\n")
+
 
 # Run the main function when the script is executed
 if __name__ == "__main__":
