@@ -1,6 +1,7 @@
 import sys
 from web3 import Web3
 from solcx import compile_source, install_solc, set_solc_version
+import config
 
 #---------------------------Solidity Compiler Setup---------------------------------------------------------
 # Install and set the Solidity compiler to version 0.8.13
@@ -8,6 +9,7 @@ install_solc('0.8.13')
 set_solc_version('0.8.13')
 
 #---------------------------Blockchain Connection-----------------------------------------------------------
+
 # Connect to the Ganache local Ethereum blockchain
 ganache_url = "http://127.0.0.1:7545"
 w3 = Web3(Web3.HTTPProvider(ganache_url))
@@ -158,7 +160,7 @@ def add_candidate(name):
             'gas': 100000
         })
         w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Candidate '{name}' added successfully.")
+        if(config.PRINT_BACKEND_LOGS): print(f"Candidate '{name}' added successfully.")
     except Exception as e:
         print(f"Failed to add candidate '{name}': {e}")
 

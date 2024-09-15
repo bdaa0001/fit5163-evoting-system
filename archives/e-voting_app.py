@@ -1,6 +1,7 @@
 import sys
 from web3 import Web3
 from solcx import compile_source, install_solc, set_solc_version
+import config
 
 # Install and set Solidity compiler
 install_solc('0.8.0')
@@ -149,15 +150,15 @@ def add_candidate(name):
             'gas': 100000
         })
         w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Candidate '{name}' added successfully.")
+        if(config.PRINT_BACKEND_LOGS): print(f"Candidate '{name}' added successfully.")
     except Exception as e:
-        print(f"Failed to add candidate '{name}': {e}")
+        if(config.PRINT_BACKEND_LOGS): print(f"Failed to add candidate '{name}': {e}")
 
 def create_voter_account(voter_id):
     """Assign an existing Ganache account to the voter ID."""
     voter_address = w3.eth.accounts[int(voter_id)]  # Use predefined Ganache accounts
     voter_accounts[voter_id] = voter_address
-    print(f"Voter '{voter_id}' assigned to existing address: {voter_address}")
+    if(config.PRINT_BACKEND_LOGS): print(f"Voter '{voter_id}' assigned to existing address: {voter_address}")
     return voter_address
 
 def authorize_voter(voter_id):

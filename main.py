@@ -1,7 +1,24 @@
 import core.blockchain_ganache as blockchain_ganache
 import auth.voter_authentication as voter_authentication
 import core.blinding_signature as blinding_signature
+import config
 import re
+
+# Function to select log type
+def select_log_type():
+  
+    while True:
+        log_choice = input("Do you want to print back-end logs (yes) or only front-end logs (no)? (yes/no): ").lower()
+        if log_choice == 'yes':
+            config.PRINT_BACKEND_LOGS = True
+            print("Back-end logs will be printed.")
+            break
+        elif log_choice == 'no':
+            config.PRINT_BACKEND_LOGS = False
+            print("Only front-end logs will be printed.")
+            break
+        else:
+            print("Invalid input. Please enter 'yes' or 'no'.")
 
 # Function to add candidates to the blockchain
 def add_candidates(candidates):
@@ -11,7 +28,7 @@ def add_candidates(candidates):
     Args:
     candidates (dict): A dictionary of candidate numbers and names.
     """
-    print("Candidates:")
+    print("Voting candidates:")
     for candidate_number, candidate_name in candidates.items():
         blockchain_ganache.add_candidate(candidate_name)
         print(f"{candidate_number}: {candidate_name}")
@@ -28,6 +45,14 @@ def display_candidates(candidates):
     for candidate_number, candidate_name in candidates.items():
         print(f"{candidate_number}: {candidate_name}")
 
+# Wlcome message
+def welcome_message():
+    print("Welcome to the E-Voting System!")
+    print("Your vote matters, and we’re here to make sure it counts.")
+    print("Rest assured, your vote will remain completely anonymous and secure.")
+    print("Our system is designed to protect your privacy while ensuring fairness.")
+    print("Please follow the instructions to cast your vote confidently.\n")
+
 # Main CLI function
 def main():
     """
@@ -35,6 +60,9 @@ def main():
     show vote totals, and exit the system.
     """
     
+    select_log_type()
+    
+    welcome_message()
     # Define candidates with their assigned numbers
     candidates = {
         1: "Alice",
@@ -57,7 +85,6 @@ def main():
         print("\n--- Voting Menu ---")
         print("1. Register voter")
         print("2. Cast a vote")
-        print("3. Show total votes")
         print("4. Exit")
 
         # User input to select an option from the menu
