@@ -2,23 +2,35 @@ import core.blockchain_ganache as blockchain_ganache
 import auth.voter_authentication as voter_authentication
 import core.blinding_signature as blinding_signature
 import config
+import hashlib
 import re
 
 # Function to select log type
 def select_log_type():
-  
+    """
+    Outputs console messages differently based on the intended audience:
+    - Back-end (developer) output: detailed messages for developers' debugging and monitoring purposes.
+    - Front-end (user) output: clear and concise messages meant for user interaction.
+
+    Parameters:
+    message (str): The message to be output.
+    is_backend (bool): Set to True for developer-facing messages (default).
+                       Set to False for user-facing messages.
+
+    Behavior:
+    - For back-end (developer) output, more technical and detailed information is provided for troubleshooting.
+    - For front-end (user) output, the message is simplified for user understanding without technical jargon.
+    """
     while True:
-        log_choice = input("Do you want to print back-end logs (yes) or only front-end logs (no)? (yes/no): ").lower()
-        if log_choice == 'yes':
+        log_choice = input("Do you want to print back-end logs (Yes/Y / [No])? : ").lower()
+        if log_choice in ['yes', 'y']:
             config.PRINT_BACKEND_LOGS = True
             print("Back-end logs will be printed.")
             break
-        elif log_choice == 'no':
+        elif log_choice == '' or log_choice not in ['yes', 'y']:
             config.PRINT_BACKEND_LOGS = False
-            print("Only front-end logs will be printed.")
+            print("Only Front-end logs will be printed.")
             break
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
 
 # Function to add candidates to the blockchain
 def add_candidates(candidates):
@@ -47,7 +59,7 @@ def display_candidates(candidates):
 
 # Wlcome message
 def welcome_message():
-    print("Welcome to the E-Voting System!")
+    print("Welcome to the E-Voting System!\n")
     print("Your vote matters, and we’re here to make sure it counts.")
     print("Rest assured, your vote will remain completely anonymous and secure.")
     print("Our system is designed to protect your privacy while ensuring fairness.")
@@ -59,8 +71,9 @@ def main():
     Main function to run the voting system. Provides options to register voters, cast votes,
     show vote totals, and exit the system.
     """
-    
     select_log_type()
+    
+    blockchain_ganache.connect_to_blockchain()
     
     welcome_message()
     # Define candidates with their assigned numbers
@@ -71,6 +84,7 @@ def main():
         4: "David",
         5: "Eve"
     }
+
     
     # Add candidates to the blockchain
     add_candidates(candidates)
@@ -85,6 +99,7 @@ def main():
         print("\n--- Voting Menu ---")
         print("1. Register voter")
         print("2. Cast a vote")
+        print("3. Show total votes")
         print("4. Exit")
 
         # User input to select an option from the menu
@@ -101,7 +116,14 @@ def main():
             # Cast a vote
             try:
                 voter_id = input("Enter your voter ID: ")
-
+                    
+                hashed_voter_id = hashlib.sha256(voter_id.encode()).hexdigest()
+                
+                 # Check if the voter has registered
+                if voter_id not in voters and hashed_voter_id not in voters:
+                    print("Voter ID not registered or ineligible. Please register first.")
+                    continue
+                
                 # Check if the voter has already voted
                 if voter_id in voted_voters:
                     print("You have already cast your vote. You cannot vote again.")
@@ -115,8 +137,8 @@ def main():
                 if candidate_number in candidates:
                     confirmation = input(f"Are you sure you want to vote for {candidates[candidate_number]}? (yes/no): ").lower()
                     if confirmation == "yes":
-                        # Cast a valid vote using blinding_signature module
-                        blinding_signature.cast_a_vote(voters, candidate_number, vote_records)
+                        # Cast a valid vote using the blinding_signature module
+                        blinding_signature.cast_a_vote(voter_id, voters, vote_records, candidate_number)
                         voted_voters.add(voter_id)  # Mark voter as having voted
                     else:
                         print("Vote cancelled.")

@@ -3,10 +3,13 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from sympy import mod_inverse
 import hashlib
+import sys
 import os
 import random
 import re
 from core.blockchain_ganache import add_candidate,create_voter_account, create_voter_account, cast_vote_transact
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import config
 
 
 #----------------------------Voter Registration-with Storing Key Pair----------------------------------------
@@ -41,6 +44,9 @@ def generate_rsa_keys():
 
 # Function to register a voter with blockchain and store their keys and info
 def register_voter(voters):
+    """
+    Registers a voter by generating an ID, creating a blockchain address, and storing their details.
+    """
     name = input("Enter your name: ")
 
     while True:
@@ -54,33 +60,36 @@ def register_voter(voters):
         print("Email already registered. One email can be used for one registration.")
         return
 
+    # Generate both hashed and plain voter IDs
     hashed_voter_id, plain_voter_id = generate_voter_id()
     
     # Blockchain: Create voter account and authorize on the blockchain index 0-9
-    print(f"* Clarification: This is only displayed for DEMO purposes *")
-    ganache_index= random.randint(1, 9)
-    voter_address=create_voter_account(ganache_index)
-    print(f"* Demo Blockchain: Block is mined for a voter and stored on this address *")
-    print(f"Voter '{plain_voter_id}' assigned to existing address: {voter_address}")
+    ganache_index = random.randint(1, 9)
+    voter_address = create_voter_account(ganache_index)
+
+    if config.PRINT_BACKEND_LOGS:
+        print(f"Block is mined for a voter and stored on this address")
+        print(f"Voter '{plain_voter_id}' assigned to existing address: {voter_address}")
 
     # Generate RSA keys
     private_key, public_key = generate_rsa_keys()
 
-    # Store voter info with blockchain address
+    # Store voter info with blockchain address (hashed_voter_id used as key)
     voters[hashed_voter_id] = {
         'name': name,
         'email': email,
-        'id': plain_voter_id,
+        'id': plain_voter_id,  # Plain voter ID for reference
         'private_key': private_key,
         'public_key': public_key,
         'ganache_index': ganache_index,
         'blockchain_address': voter_address  # Store their blockchain address
     }
-    print(f"IMPORTANT! Please keep this ID safe place, You will need this ID to cast a vote!")
-    print(f"Voter registered successfully with ID: {plain_voter_id}")
-    
 
+    # Print plain voter ID for the voter to remember
+    print(f"You have registered successfully with ID: {plain_voter_id}")
+    print(f"IMPORTANT! Please keep this ID in a safe place, You will need this ID to cast a vote!")
 
+    # After registration process, print the voters dictionary for debugging
 #----------------------------Vote sign - Encryption/ Decryption---------------------------------------------------
 
 # Function to sign a vote using private key
@@ -118,44 +127,6 @@ def decrypt_vote(private_key, encrypted_vote):
         )
     )
     return decrypted_vote.decode()
-
-#---------------------------Vote Casting with blind signature-------------------------------------------------------------------
-# casting a vote
-def cast_a_vote(voters, vote_records, candidate_number, candidate_name):
-    vote_record = []
-    voter_id = input("Enter your voter ID: ")
-    hashed_voter_id = hashlib.sha256(voter_id.encode()).hexdigest()
-    if hashed_voter_id not in voters:
-        print("Voter not registered. Please register first.")
-    else:
-        voter = voters[hashed_voter_id]
-        voter_address= voter['blockchain_address']
-        # Cast a vote from voter for a candidate and create a block in Ganache to be added in e-voting contract
-        cast_vote_transact(voter_address, candidate_number - 1)  # Candidates are zero-indexed in the contract
-
-        authority_private_key=voter['private_key']
-        authority_public_key = voter['public_key']
-        # blind the vote
-        # Blind the vote using authority's public key
-        blinded_vote, blinding_factor = blind_vote(authority_public_key, candidate_number)
-        # Send the blinded vote to the authority for signing
-        signed_blinded_vote = sign_blinded_vote(authority_private_key, blinded_vote)
-        # Unblind the signed vote using the blinding factor
-        unblinded_signature = unblind_signature(signed_blinded_vote, blinding_factor, authority_public_key)
-
-        # Add the unblinded signature and encrypted vote to the vote record list
-        vote_record.append({
-            'voter_id': hashed_voter_id,
-            'candidate_number': candidate_number,
-            'unblinded_signature': unblinded_signature,
-        })
-        # Verify the unblinded vote
-        if verify_signature(authority_public_key, unblinded_signature,candidate_number):
-            print("Vote verified successfully and remains anonymous!")
-        else:
-            print("Vote verification failed.")
-        vote_records.append(vote_record)
-        print(f"Your vote cast for candidate {candidate_number} successfully!")
 
 
 #-- blinding signature functions for realise each vote is anonymous--------------------------------------------------------------------
