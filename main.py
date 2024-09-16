@@ -46,6 +46,26 @@ def add_candidates(candidates):
         blockchain_ganache.add_candidate(candidate_name)
         print(f"{candidate_number}: {candidate_name}")
 
+# Function to pass to next voter
+def pass_to_next_voter(voter_id, voted_voters):
+    """
+    Ask the current voter if they have voted, and if confirmed,
+    return to the welcome message for the next voter.
+    
+    Args:
+    voter_id (str): The current voter's ID.
+    voted_voters (set): The set of voters who have already voted.
+    """
+    if voter_id in voted_voters:
+        print("\n✅ Thank you for voting!")
+        print("\n--- Please pass the system to the next voter ---\n")
+        welcome_message()  # Display welcome message again for the next voter
+        input("Press any key to proceed to the voting menu")
+        return True
+    else:
+        print("\n⚠️ You have not voted yet. Please register and cast your vote first.\n")
+        return False
+
 # Function to display candidates
 def display_candidates(candidates):
     """
@@ -77,7 +97,7 @@ def welcome_message():
 def main():
     """
     Main function to run the voting system. Provides options to register voters, cast votes,
-    show vote totals, and exit the system.
+    show vote totals, pass to next voter, and exit the system.
     """
     select_log_type()
     
@@ -107,14 +127,15 @@ def main():
         print("\n" + "="*30)
         print("          Voting Menu")
         print("="*30)
-        print("1. Register voter")
+        print("1. Register as a voter")
         print("2. Cast a vote")
         print("3. Show total votes")
-        print("4. Exit")
+        print("4. Pass to next voter")
+        print("5. Exit/Finish voting")
         print("="*30)
 
         # User input to select an option from the menu
-        choice = input("Enter your choice (1-4): ")
+        choice = input("Enter your choice (1-5): ")
 
         if choice == '1':
             # Register a voter
@@ -173,6 +194,14 @@ def main():
                 print(f"\n❌ Error tallying votes: {e}\n")
 
         elif choice == '4':
+            # Pass to the next voter
+            voter_id = input("\nEnter your voter ID: ")
+            if pass_to_next_voter(voter_id, voted_voters):
+                continue
+            else:
+                continue
+
+        elif choice == '5':
             # Exit the voting system
             try:
                 print("\n--- Final votes ---\n")
@@ -207,7 +236,7 @@ def main():
 
         else:
             # Invalid menu selection
-            print("\n❌ Invalid choice. Please enter a number between 1 and 4.\n")
+            print("\n❌ Invalid choice. Please enter a number between 1 and 5.\n")
 
 
 # Run the main function when the script is executed
