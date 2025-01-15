@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project is a simple e-voting system that leverages **blind signatures**, **blockchain**, and **smart contracts** to provide a secure and anonymous voting platform. The system ensures voter privacy while maintaining the integrity of the voting process through cryptographic techniques and decentralized technologies.
+This project is a simple e-voting system that leverages **blind signatures**, **blockchain**, and **smart contracts** to provide a secure and anonymous voting platform. The system ensures voter privacy while maintaining the integrity of the voting process through cryptographic techniques and decentralized technologies. 
 
 ## Project Structure
 The project is organized into several key directories and files, each contributing to different aspects of the e-voting system:
